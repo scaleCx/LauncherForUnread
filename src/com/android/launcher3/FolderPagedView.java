@@ -221,6 +221,9 @@ public class FolderPagedView extends PagedView {
     public View createNewView(ShortcutInfo item) {
         final BubbleTextView textView = (BubbleTextView) mInflater.inflate(
                 R.layout.folder_application, null, false);
+        /** M: Modified for Unread feature. Update unread number of folder icon.@**/
+        mFolder.mFolderIcon.updateFolderUnreadNum(item.intent.getComponent(), item.unreadNum);
+        /**@}**/
         textView.applyFromShortcutInfo(item, mIconCache);
         textView.setOnClickListener(mFolder);
         textView.setOnLongClickListener(mFolder);

@@ -16,6 +16,7 @@
 package com.android.launcher3.allapps;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Point;
@@ -47,6 +48,7 @@ import com.android.launcher3.LauncherTransitionable;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.Workspace;
+import com.android.launcher3.allapps.AlphabeticalAppsList.AdapterItem;
 import com.android.launcher3.util.ComponentKey;
 
 import java.nio.charset.Charset;
@@ -607,5 +609,22 @@ public class AllAppsContainerView extends BaseContainerView implements DragSourc
         mSearchQueryBuilder.clear();
         mSearchQueryBuilder.clearSpans();
         Selection.setSelection(mSearchQueryBuilder, 0);
+    }
+
+    public void updateAppsUnreadChanged(ComponentName componentName, int unreadNum) {
+        List<AdapterItem> mAdapterItems = mApps.getAdapterItems();
+        final int size = mAdapterItems.size();
+        AdapterItem adapterItem = null;
+        for (int i = 0; i < size; i++) {
+            adapterItem = mAdapterItems.get(i);
+            if (adapterItem.appInfo != null && adapterItem.appInfo.intent != null
+                    && adapterItem.appInfo.intent.getComponent().equals(componentName)) {
+                adapterItem.appInfo.unreadNum = unreadNum;
+            }
+        }
+        // Refresh the recycler view
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
+        }
     }
 }

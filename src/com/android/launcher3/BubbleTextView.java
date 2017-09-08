@@ -29,6 +29,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.util.TypedValue;
@@ -43,7 +44,7 @@ import com.android.launcher3.IconCache.IconLoadRequest;
 import com.android.launcher3.model.PackageItemInfo;
 
 import java.text.NumberFormat;
-
+import com.mediatek.launcher3.LauncherLog;
 /**
  * TextView that draws a bubble behind the text. We cannot use a LineBackgroundSpan
  * because we want to make the bubble taller than the text and TextView's clip is
@@ -51,7 +52,7 @@ import java.text.NumberFormat;
  */
 public class BubbleTextView extends TextView
         implements BaseRecyclerViewFastScrollBar.FastScrollFocusableView {
-
+    private static final String TAG = "Launcher3.BubbleTextView";
     private static SparseArray<Theme> sPreloaderThemes = new SparseArray<Theme>(2);
 
     private static final float SHADOW_LARGE_RADIUS = 4.0f;
@@ -365,6 +366,8 @@ public class BubbleTextView extends TextView
     public void draw(Canvas canvas) {
         if (!mCustomShadowsEnabled) {
             super.draw(canvas);
+            ///: Added for MTK unread message feature.@{
+            drawUnreadEvent(canvas);
             return;
         }
 
@@ -391,6 +394,8 @@ public class BubbleTextView extends TextView
         if (getCurrentTextColor() == getResources().getColor(android.R.color.transparent)) {
             getPaint().clearShadowLayer();
             super.draw(canvas);
+            ///: Added for MTK unread message feature.@{
+            drawUnreadEvent(canvas);
             return;
         }
 
@@ -404,6 +409,9 @@ public class BubbleTextView extends TextView
         getPaint().setShadowLayer(SHADOW_SMALL_RADIUS, 0.0f, 0.0f, SHADOW_SMALL_COLOUR);
         super.draw(canvas);
         canvas.restore();
+        ///: Added for MTK unread message feature.@{
+        drawUnreadEvent(canvas);
+        ///: @}
     }
 
     @Override
@@ -622,6 +630,14 @@ public class BubbleTextView extends TextView
     /**
      * Returns the start delay when animating between certain {@link FastBitmapDrawable} states.
      */
+    ///: Added for MTK unread message feature.@{
+    private void drawUnreadEvent(Canvas canvas) {
+        if (LauncherLog.DEBUG_UNREAD) {
+            LauncherLog.d(TAG, "drawUnreadEvent() this = " + this);
+        }
+        MTKUnreadLoader.drawUnreadEventIfNeed(canvas, this);
+    }
+    ///: @}
     private static int getStartDelayForStateChange(final FastBitmapDrawable.State fromState,
             final FastBitmapDrawable.State toState) {
         switch (toState) {

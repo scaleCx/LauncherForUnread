@@ -121,6 +121,10 @@ public class ItemInfo {
 
     public UserHandleCompat user;
 
+    /**
+     * M: The unread messages number of the item
+     */
+    public int unreadNum = 0;
     public ItemInfo() {
         user = UserHandleCompat.myUserHandle();
     }
@@ -143,6 +147,9 @@ public class ItemInfo {
         container = info.container;
         user = info.user;
         contentDescription = info.contentDescription;
+
+        ///M: Added for unread message feature
+        unreadNum = info.unreadNum;
     }
 
     public Intent getIntent() {

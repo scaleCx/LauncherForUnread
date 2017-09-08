@@ -126,6 +126,7 @@ import com.android.launcher3.widget.WidgetsContainerView;
 import com.mediatek.launcher3.LauncherHelper;
 import com.mediatek.launcher3.LauncherLog;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -145,7 +146,8 @@ import java.util.List;
  */
 public class Launcher extends Activity
         implements View.OnClickListener, OnLongClickListener, LauncherModel.Callbacks,
-                   View.OnTouchListener, PageSwitchListener, LauncherProviderChangeListener {
+                   View.OnTouchListener, PageSwitchListener, LauncherProviderChangeListener,
+                   MTKUnreadLoader.UnreadCallbacks {
     static final String TAG = "Launcher";
     static final boolean LOGD = false;
 
@@ -408,8 +410,18 @@ public class Launcher extends Activity
         }
     };
 
+    /// M: Add for launcher unread shortcut feature. @{
+    static final int MAX_UNREAD_COUNT = 99;
+
+    public boolean mUnreadLoadCompleted = false; //op09 private
+    private boolean mBindingWorkspaceFinished = false;
+    public boolean mBindingAppsFinished = false;  //op09 private
+    /// @}
     /// M: If workspcae no initialized, save last restore workspace screen.
     private int mCurrentWorkSpaceScreen = PagedView.INVALID_RESTORE_PAGE;
+    /// M: Add for unread message feature.
+    private MTKUnreadLoader mUnreadLoader = null;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -445,6 +457,23 @@ public class Launcher extends Activity
         mSharedPrefs = Utilities.getPrefs(this);
         mIsSafeModeEnabled = getPackageManager().isSafeMode();
         mModel = app.setLauncher(this);
+        /**M: added for unread feature, load and bind unread info.@{**/
+        if (true) {
+            LauncherLog.d(TAG, "R.bool.config_unreadSupport = "
+                + getResources().getBoolean(R.bool.config_unreadSupport));
+        }
+        if (getResources().getBoolean(R.bool.config_unreadSupport)) {
+            mUnreadLoader = new MTKUnreadLoader(getApplicationContext());
+            // Register unread change broadcast.
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(Intent.ACTION_UNREAD_CHANGED);
+            registerReceiver(mUnreadLoader, filter);
+            // initialize unread loader
+            mUnreadLoader.initialize(this);
+            mUnreadLoader.loadAndInitUnreadShortcuts();
+        }
+        /**@}**/
+
         mIconCache = app.getIconCache();
 
         mDragController = new DragController(this);
@@ -4495,6 +4524,12 @@ public class Launcher extends Activity
             });
             sPendingAddItem = null;
         }
+        /** M: If unread information load completed, we need to bind it to workspace.@{**/
+        if (mUnreadLoadCompleted) {
+            bindWorkspaceUnreadInfo();
+        }
+        mBindingWorkspaceFinished = true;
+        /**@}**/
 
         InstallShortcutReceiver.disableAndFlushInstallQueue(this);
 
@@ -5240,6 +5275,108 @@ public class Launcher extends Activity
         LauncherHelper.endSection();
         return super.dispatchTouchEvent(ev);
     }
+
+    /**M: Added for unread message feature.@{**/
+
+    /**
+     * M: Bind component unread information in workspace and all apps list.
+     *
+     * @param component the component name of the app.
+     * @param unreadNum the number of the unread message.
+     */
+    public void bindComponentUnreadChanged(final ComponentName component, final int unreadNum) {
+        if (LauncherLog.DEBUG_UNREAD) {
+            LauncherLog.d(TAG, "bindComponentUnreadChanged: component = " + component
+                    + ", unreadNum = " + unreadNum + ", this = " + this);
+        }
+        // Post to message queue to avoid possible ANR.
+        mHandler.post(new Runnable() {
+            public void run() {
+                final long start = System.currentTimeMillis();
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindComponentUnreadChanged begin: component = " + component
+                            + ", unreadNum = " + unreadNum + ", start = " + start);
+                }
+                if (mWorkspace != null) {
+                    mWorkspace.updateComponentUnreadChanged(component, unreadNum);
+                }
+
+                if (mAppsView != null) {
+                    mAppsView.updateAppsUnreadChanged(component, unreadNum);
+                }
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindComponentUnreadChanged end: current time = "
+                            + System.currentTimeMillis() + ", time used = "
+                            + (System.currentTimeMillis() - start));
+                }
+            }
+        });
+    }
+
+   /**
+     * M: Bind shortcuts unread number if binding process has finished.
+     */
+    public void bindUnreadInfoIfNeeded() {
+        if (LauncherLog.DEBUG_UNREAD) {
+            LauncherLog.d(TAG, "bindUnreadInfoIfNeeded: mBindingWorkspaceFinished = "
+                    + mBindingWorkspaceFinished + ", thread = " + Thread.currentThread());
+        }
+        if (mBindingWorkspaceFinished) {
+            bindWorkspaceUnreadInfo();
+        }
+
+        if (mBindingAppsFinished) {
+            bindAppsUnreadInfo();
+        }
+        mUnreadLoadCompleted = true;
+    }
+
+    /**
+     * M: Bind unread number to shortcuts with data in MTKUnreadLoader.
+     */
+    private void bindWorkspaceUnreadInfo() {
+        mHandler.post(new Runnable() {
+            public void run() {
+                final long start = System.currentTimeMillis();
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindWorkspaceUnreadInfo begin: start = " + start);
+                }
+                if (mWorkspace != null) {
+                    mWorkspace.updateShortcutsAndFoldersUnread();
+                }
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindWorkspaceUnreadInfo end: current time = "
+                            + System.currentTimeMillis() + ",time used = "
+                            + (System.currentTimeMillis() - start));
+                }
+            }
+        });
+    }
+
+    /**
+     * M: Bind unread number to shortcuts with data in MTKUnreadLoader.
+     */
+    private void bindAppsUnreadInfo() {
+        mHandler.post(new Runnable() {
+            public void run() {
+                final long start = System.currentTimeMillis();
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindAppsUnreadInfo begin: start = " + start);
+                }
+                /*unread if (mAppsCustomizeContent != null) {
+                    mAppsCustomizeContent.updateAppsUnread();
+                }*/
+                if (LauncherLog.DEBUG_PERFORMANCE) {
+                    LauncherLog.d(TAG, "bindAppsUnreadInfo end: current time = "
+                            + System.currentTimeMillis() + ",time used = "
+                            + (System.currentTimeMillis() - start));
+                }
+            }
+        });
+    }
+
+    /**@}**/
+
 }
 
 interface DebugIntents {

@@ -101,4 +101,5 @@
     <!--M:ALPSALPS02299998 Lanscape item counts for foder-->
      <integer name="config_landscape_x">5</integer>
      <integer name="config_landscape_y">3</integer>
+    <bool name="config_unreadSupport">true</bool>
 </resources>
