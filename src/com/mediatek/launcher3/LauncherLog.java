@@ -56,7 +56,7 @@ public final class LauncherLog {
     public static boolean DEBUG_MOTION = false;
     public static boolean DEBUG_PERFORMANCE = true;
     public static boolean DEBUG_SURFACEWIDGET = false;
-    public static boolean DEBUG_UNREAD = false;
+    public static boolean DEBUG_UNREAD = true;
     public static boolean DEBUG_LOADERS = true;
     public static boolean DEBUG_AUTOTESTCASE = false;
 

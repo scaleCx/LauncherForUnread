@@ -12,7 +12,7 @@
         launcher:unreadType="0"
         launcher:unreadKey="com_android_mms_mtk_unread"
      />-->
-     <shortcut
+<!--     <shortcut
         launcher:unreadPackageName="com.android.email"
         launcher:unreadClassName="com.android.email.activity.Welcome"
         launcher:unreadType="0"
@@ -41,7 +41,7 @@
         launcher:unreadClassName="com.mediatek.cellbroadcastreceiver.CellBroadcastListActivity"
         launcher:unreadType="0"
 		launcher:unreadKey="com_mediatek_cellbroadcastreceiver_mtk_unread"
-    />
+    />-->
      <shortcut
         launcher:unreadPackageName="com.google.android.apps.messaging"
         launcher:unreadClassName="com.google.android.apps.messaging.ui.ConversationListActivity"
